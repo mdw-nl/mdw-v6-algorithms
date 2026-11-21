@@ -1,0 +1,15 @@
+# Single source of truth for versions shared across this repo (AGENTS.md §2, §11).
+# The dev network, the runner's client, and every algorithm image install vantage6
+# pinned to the same version. Bump all three together.
+
+[python]
+version = "3.13"
+
+[vantage6]
+version = "4.14.0"
+# vantage6-algorithm-tools, vantage6-client and vantage6-common are pinned to the
+# same version. The dev network's server/node/UI images use this version too
+# (dev-network/config pins the exact image tags, which may trail by an -rcN).
+
+[base_image]
+image = "python:3.13-slim"

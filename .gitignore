@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ruff_cache/
+datavalgen/generated/
+dev-network/generated/
+*.egg-info/
+.env

@@ -1,0 +1,30 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "node-data-schema"
+version = "0.1.0"
+description = "Synthetic node-data model and factory for this repo's datavalgen profiles (AGENTS.md §4)"
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    "datavalgen @ https://github.com/mdw-nl/datavalgen/archive/refs/tags/v0.4.4.tar.gz",
+]
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/node_data_schema"]
+
+# datavalgen contract: entrypoints for models and factories (AGENTS.md: datavalgen's
+# README -- entry points under "datavalgen.models" / "datavalgen.factories").
+[project.entry-points."datavalgen.models"]
+node_data = "node_data_schema.model:NodeDataModel"
+
+[project.entry-points."datavalgen.factories"]
+healthy = "node_data_schema.factory:HealthyFactory"
+skewed = "node_data_schema.factory:SkewedFactory"
+
+[project.urls]
+Homepage = "https://github.com/mdw-nl/mdw-v6-algorithms"

@@ -1,0 +1,47 @@
+[project]
+name = "mdw-v6-algorithms"
+version = "0.1.0"
+description = "Standard, reusable vantage6 algorithms for MDW projects"
+requires-python = ">=3.13,<3.14"
+dependencies = ["v6core", "descriptive_statistics", "node-data-schema", "numpy"]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=8.0.0",
+    "ruff>=0.16.0",
+    "ty>=0.0.1a0",
+    "vantage6==4.14.0",
+    "vantage6-algorithm-tools==4.14.0",
+]
+
+# Everything installable in this repo is a workspace member, so `make setup`
+# installs v6core, every algorithm, the runner and every datavalgen profile
+# package editable in one `uv sync`.
+[tool.uv.workspace]
+members = [
+    "packages/v6core",
+    "algorithms/*",
+    "runner",
+    "datavalgen/schemas/*",
+]
+
+[tool.uv.sources]
+v6core = { workspace = true }
+descriptive_statistics = { workspace = true }
+node-data-schema = { workspace = true }
+
+[tool.pytest.ini_options]
+testpaths = ["packages/v6core/tests", "algorithms"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["v6core", "descriptive_statistics", "v6run"]
+
+[tool.ty.environment]
+python-version = "3.13"

@@ -39,6 +39,14 @@ source of truth — field descriptions there double as this table.
 values; values outside it are excluded from every other statistic for that column and
 counted separately under `outliers`.
 
+Each statistic is computed as a separate complete-case aggregation: a column that fails
+coercion on one node (e.g. `NON_NUMERIC`) drops that node from `mean`/`std`/`minmax` for
+that column, while `nrows`/`counts` for the same column are unaffected if they don't
+require numeric coercion. This means different statistics for the same column can carry
+different effective sample sizes when a node partially fails — read `warnings` to see
+which nodes were excluded from which statistic; don't assume `nrows` is the denominator
+for every other statistic on that column.
+
 ## Output shape
 
 ```json

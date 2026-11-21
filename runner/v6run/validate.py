@@ -40,7 +40,12 @@ def validate(study_path: str) -> ValidationResult:
         return ValidationResult(ok=False, problems=[str(exc)], study=study)
 
     try:
-        parse_params(discovered.model, study.params)
+        effective_params = study.effective_params()
+    except ValueError as exc:
+        return ValidationResult(ok=False, problems=[str(exc)], study=study)
+
+    try:
+        parse_params(discovered.model, effective_params)
     except ParamsError as exc:
         problems.extend(exc.messages)
 

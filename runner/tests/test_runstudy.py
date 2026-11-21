@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 import pytest
 
-from v6run.runstudy import RunnerError, _lookup_id, _wait_for_task, run
+from v6run.runstudy import RunnerError, _lookup_id, _setup_encryption, _wait_for_task, run
 
 
 def test_lookup_id_finds_match():
@@ -51,7 +51,7 @@ class _FakeSubClient:
 class _FakeTaskClient:
     def __init__(self, task_id):
         self._task_id = task_id
-        self.created_with = None
+        self.created_with: dict = {}
 
     def create(self, **kwargs):
         self.created_with = kwargs
@@ -76,7 +76,11 @@ class _FakeRunClient:
 
 
 class _FakeVantage6Client:
+    instances: list["_FakeVantage6Client"] = []
+
     def __init__(self, *args, **kwargs):
+        _FakeVantage6Client.instances.append(self)
+        self.encryption_key_path = None
         self.organization = _FakeSubClient([{"id": 10, "name": "alpha"}, {"id": 20, "name": "beta"}])
         self.collaboration = _FakeSubClient([{"id": 1, "name": "demo"}])
         self.task = _FakeTaskClient(task_id=99)
@@ -94,11 +98,11 @@ class _FakeVantage6Client:
         self.authenticated_with = None
         self._status_calls = 0
 
-    def authenticate(self, username, password):
-        self.authenticated_with = (username, password)
+    def authenticate(self, username, password, mfa_code=None):
+        self.authenticated_with = (username, password, mfa_code)
 
     def setup_encryption(self, key):
-        pass
+        self.encryption_key_path = key
 
     def setup_collaboration(self, collaboration_id):
         self.collaboration_id = collaboration_id
@@ -110,7 +114,7 @@ class _FakeVantage6Client:
 
 def test_run_end_to_end_against_a_fake_server(study_file, tmp_path):
     out_dir = tmp_path / "out"
-    with patch("v6run.runstudy.Client", _FakeVantage6Client):
+    with patch("v6run.runstudy.Client", _FakeVantage6Client) as fake_cls:
         result = run(str(study_file), out_dir=str(out_dir))
 
     assert result.task_id == 99
@@ -121,6 +125,62 @@ def test_run_end_to_end_against_a_fake_server(study_file, tmp_path):
 
     written_envelope = json.loads((out_dir / "result.json").read_text())
     assert written_envelope["result"]["columns"]["age"]["mean"] == 42.0
+
+    # study_dict's top-level `organizations: [alpha, beta]` must reach the task's
+    # kwargs, not be silently dropped (AGENTS.md §9.5).
+    client = fake_cls.instances[-1]
+    assert client.task.created_with["input_"]["kwargs"]["organizations"] == ["alpha", "beta"]
+    assert client.task.created_with["databases"] == [{"label": "default"}]
+
+
+def test_run_passes_mfa_code_to_authenticate(study_file, tmp_path):
+    with patch("v6run.runstudy.Client", _FakeVantage6Client) as fake_cls:
+        run(str(study_file), out_dir=str(tmp_path / "out"), mfa_code="123456")
+
+    client = fake_cls.instances[-1]
+    assert client.authenticated_with == ("dev_admin", "ior8ahP7ahqu3ees", "123456")
+
+
+def test_organizations_conflict_between_top_level_and_params_is_a_runner_error(study_dict, tmp_path):
+    import yaml
+
+    study_dict["params"]["organizations"] = ["beta"]  # disagrees with top-level [alpha, beta]
+    path = tmp_path / "study.yaml"
+    path.write_text(yaml.safe_dump(study_dict))
+
+    with patch("v6run.runstudy.Client", _FakeVantage6Client):
+        with pytest.raises(RunnerError, match="organizations"):
+            run(str(path), out_dir=str(tmp_path / "out"))
+
+
+def test_setup_encryption_uses_dummy_encryptor_when_no_key_configured():
+    client = _FakeVantage6Client()
+    _setup_encryption(client, private_key_path=None)
+    # No exception, no key path -- the dummy/unencrypted path.
+
+
+def test_setup_encryption_raises_clearly_when_key_file_is_missing(tmp_path):
+    client = _FakeVantage6Client()
+    missing = tmp_path / "does-not-exist.pem"
+    with pytest.raises(RunnerError, match="does not exist"):
+        _setup_encryption(client, private_key_path=str(missing))
+
+
+def test_setup_encryption_uses_real_key_when_file_exists(tmp_path):
+    key_path = tmp_path / "privkey.pem"
+    key_path.write_text("fake key material")
+    client = _FakeVantage6Client()
+    _setup_encryption(client, private_key_path=str(key_path))
+    assert client.encryption_key_path == str(key_path)
+
+
+def test_run_uses_profile_database_label(study_file, tmp_path, monkeypatch):
+    monkeypatch.setenv("V6RUN_DEV_DATABASE_LABEL", "dataset_custom")
+    with patch("v6run.runstudy.Client", _FakeVantage6Client) as fake_cls:
+        run(str(study_file), out_dir=str(tmp_path / "out"))
+
+    client = fake_cls.instances[-1]
+    assert client.task.created_with["databases"] == [{"label": "dataset_custom"}]
 
 
 def test_run_raises_runner_error_for_invalid_study(tmp_path, study_dict):

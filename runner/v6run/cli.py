@@ -19,8 +19,11 @@ def _cmd_validate(args: argparse.Namespace) -> int:
 
 
 def _cmd_run(args: argparse.Namespace) -> int:
+    mfa_code = None
+    if args.mfa:
+        mfa_code = input("Two-factor authentication code (Enter to skip): ").strip() or None
     try:
-        result = run(args.study, out_dir=args.out, wait_timeout_s=args.wait_timeout)
+        result = run(args.study, out_dir=args.out, wait_timeout_s=args.wait_timeout, mfa_code=mfa_code)
     except RunnerError as exc:
         print(f"Error: {exc}", file=sys.stderr)
         return 1
@@ -51,6 +54,11 @@ def build_parser() -> argparse.ArgumentParser:
         type=float,
         default=600.0,
         help="Seconds to wait for the task to finish (default: 600).",
+    )
+    run_parser.add_argument(
+        "--mfa",
+        action="store_true",
+        help="Prompt for a two-factor code before connecting (needed on servers with 2FA enabled).",
     )
     run_parser.set_defaults(func=_cmd_run)
 

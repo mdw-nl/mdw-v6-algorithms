@@ -54,23 +54,53 @@ published, leave it unset -- `algorithm` + `version` resolve the image reference
 
 ## Server profiles
 
-`profile: dev` in a study file resolves to the local dev network
-(`dev-network/`) by default: `http://localhost:5070`, api path `/api`.
+`profile: dev` in a study file resolves to the local dev network (`dev-network/`) by
+default: `http://localhost:7601`, api path `/api`, the dev network's well-known fake
+`dev_admin` account. All of it is overridable, and any *other* profile name works the
+same way with no built-in defaults -- every setting for a profile named `<name>` comes
+from an environment variable `V6RUN_<NAME>_*` (uppercased), and a real profile fails
+loudly if a required one is missing rather than falling back to anything:
 
-Credentials are never in the study file or in code (AGENTS.md §9.5) -- set them via
-environment variables:
+| Variable | Required | `dev` default | Notes |
+|---|---|---|---|
+| `V6RUN_<NAME>_SERVER_URL` | yes | `http://localhost` | |
+| `V6RUN_<NAME>_PORT` | yes | `7601` | |
+| `V6RUN_<NAME>_API_PATH` | no | `/api` | |
+| `V6RUN_<NAME>_USERNAME` | yes | `dev_admin` | |
+| `V6RUN_<NAME>_PASSWORD` | yes | (dev network's fake password) | |
+| `V6RUN_<NAME>_DATABASE_LABEL` | no | `default` | Must match what every node in the collaboration registered its dataset under. |
+| `V6RUN_<NAME>_PRIVATE_KEY_PATH` | no | unset (unencrypted) | See **Encryption** below. |
 
-| Variable | Default | Notes |
-|---|---|---|
-| `V6RUN_USERNAME` | `dev_admin` | Dev network's well-known account; fine to default since it's fake. |
-| `V6RUN_PASSWORD` | `password` | Same. |
-| `V6RUN_SERVER_URL` | `http://localhost` | |
-| `V6RUN_PORT` | `5070` | |
-| `V6RUN_API_PATH` | `/api` | |
+Credentials never go in a study file or in code (AGENTS.md §9.5), following grimoire's
+secrets policy (`company/security.md`): set them from a file **outside this repo**
+(e.g. `~/.v6run-prod.env`, `chmod 600`, `source`d before running `v6run`) -- never
+inside the project directory, where an editor or file-watching tool could surface a
+secret in plaintext the moment it's saved.
 
-Only the `dev` profile is defined so far (`v6run.profiles.resolve_profile`). Add a
-new entry there when a real server/collaboration profile is needed -- don't invent a
-parallel mechanism.
+### Encryption
+
+A collaboration that enforces end-to-end encryption rejects an unencrypted client
+outright ("Your collaboration requires encryption, but input is not encrypted!"). Set
+`V6RUN_<NAME>_PRIVATE_KEY_PATH` to your organization's **existing** node encryption
+private key -- the same file your node's own `config.yaml` already points at under
+`encryption.private_key`. vantage6 encryption keys are per-organization and shared with
+the node, so pointing at the existing key means the client's `setup_encryption()` call
+finds a match already registered on the server and uploads nothing. **Never point this
+at a freshly generated key** -- that would overwrite the organization's registered
+public key and break the node's own ability to decrypt tasks until its config is
+updated to match. If a run ever logs "uploading public key" or "does not match HQ's
+public key," stop and recheck `PRIVATE_KEY_PATH` before running anything else.
+
+This is implemented (`v6run.runstudy._setup_encryption`) but not yet exercised against
+a real encryption-enforcing collaboration -- the dev network is unencrypted, so only
+the "no key configured" path has been tested live.
+
+### Two-factor authentication
+
+Pass `--mfa` to `v6run run` on a server with 2FA enabled; it prompts for a fresh
+six-digit code right before authenticating (a TOTP code is single-use and expires in
+seconds, so there's nothing to usefully store ahead of time). Omit it if the account
+has no 2FA.
 
 ## Known gaps (first version)
 

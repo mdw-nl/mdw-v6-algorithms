@@ -56,6 +56,26 @@ class Study(BaseModel):
             raise ValueError("'version' must be a semver tag, never 'latest' (AGENTS.md §9.5)")
         return value
 
+    def effective_params(self) -> dict[str, Any]:
+        """`params` merged with the top-level `organizations` convenience field.
+
+        AGENTS.md §9.5 documents `organizations` as a top-level study-file field (so the
+        common case -- restrict the fan-out -- doesn't have to be duplicated inside the
+        algorithm-specific `params` block). Setting it both places and disagreeing is
+        almost certainly a mistake, not an override, so it's rejected rather than
+        silently picking one.
+        """
+        if self.organizations is None:
+            return dict(self.params)
+        existing = self.params.get("organizations")
+        if existing is not None and existing != self.organizations:
+            raise ValueError(
+                "study file sets 'organizations' both at the top level "
+                f"({self.organizations!r}) and inside 'params' ({existing!r}) with "
+                "different values -- remove one"
+            )
+        return {**self.params, "organizations": self.organizations}
+
 
 def load_study(study_path: str | Path) -> Study:
     """Load and validate a study file. Raises `pydantic.ValidationError` on a bad shape."""

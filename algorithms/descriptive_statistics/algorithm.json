@@ -1,0 +1,116 @@
+{
+  "name": "descriptive_statistics",
+  "description": "Federated descriptive statistics (counts, minmax, mean, std, nrows, nans, outliers) over arbitrary columns",
+  "documentation_url": "https://github.com/mdw-nl/mdw-v6-algorithms/blob/main/algorithms/descriptive_statistics/README.md",
+  "image": "ghcr.io/mdw-nl/mdw-v6-algorithms/descriptive_statistics",
+  "code_url": "https://github.com/mdw-nl/mdw-v6-algorithms/tree/main/algorithms/descriptive_statistics",
+  "vantage6_version": "4.14.0",
+  "partitioning": "horizontal",
+  "functions": [
+    {
+      "name": "central",
+      "display_name": "Descriptive statistics",
+      "description": "Compute descriptive statistics for one or more columns across every participating node, combined to the exact pooled value.",
+      "standalone": true,
+      "databases": [{ "name": "default", "description": "The dataset to describe." }],
+      "arguments": [
+        {
+          "name": "statistics",
+          "display_name": "Statistics",
+          "description": "Per-column statistics to compute: {column: {stats: [...], bins, min_cap, max_cap, inliers}}. Valid stats: counts, binned_counts, minmax, mean, std, nrows, nans, outliers.",
+          "type": "json",
+          "has_default_value": false,
+          "default_value": "",
+          "is_frontend_only": false,
+          "conditional_operator": null,
+          "conditional_value": null,
+          "allowed_values": []
+        },
+        {
+          "name": "filters",
+          "display_name": "Filters",
+          "description": "Row filters applied before every statistic: equality, isin, or a {gte,gt,lte,lt} range.",
+          "type": "json",
+          "has_default_value": true,
+          "default_value": null,
+          "is_frontend_only": false,
+          "conditional_operator": null,
+          "conditional_value": null,
+          "allowed_values": []
+        },
+        {
+          "name": "organizations",
+          "display_name": "Organizations",
+          "description": "Organization names to include; omit for every organization.",
+          "type": "organization_list",
+          "has_default_value": true,
+          "default_value": null,
+          "is_frontend_only": false,
+          "conditional_operator": null,
+          "conditional_value": null,
+          "allowed_values": []
+        },
+        {
+          "name": "min_organizations",
+          "display_name": "Minimum organizations",
+          "description": "Quorum: fewer qualifying organizations is a clean QUORUM_NOT_MET error.",
+          "type": "integer",
+          "has_default_value": true,
+          "default_value": "1",
+          "is_frontend_only": false,
+          "conditional_operator": null,
+          "conditional_value": null,
+          "allowed_values": []
+        },
+        {
+          "name": "min_rows",
+          "display_name": "Minimum rows per node",
+          "description": "Per-node floor on usable rows (after filters); below it, the node is excluded entirely. Defaults to the repo-wide privacy default (5).",
+          "type": "integer",
+          "has_default_value": true,
+          "default_value": null,
+          "is_frontend_only": false,
+          "conditional_operator": null,
+          "conditional_value": null,
+          "allowed_values": []
+        },
+        {
+          "name": "min_cell_count",
+          "display_name": "Minimum cell count",
+          "description": "Minimum count to release a cell/category unsuppressed. Defaults to the repo-wide privacy default (5).",
+          "type": "integer",
+          "has_default_value": true,
+          "default_value": null,
+          "is_frontend_only": false,
+          "conditional_operator": null,
+          "conditional_value": null,
+          "allowed_values": []
+        },
+        {
+          "name": "max_categories",
+          "display_name": "Maximum categories",
+          "description": "Categories beyond the most frequent this many are merged into \"<other>\". Defaults to the repo-wide privacy default (20).",
+          "type": "integer",
+          "has_default_value": true,
+          "default_value": null,
+          "is_frontend_only": false,
+          "conditional_operator": null,
+          "conditional_value": null,
+          "allowed_values": []
+        },
+        {
+          "name": "timeout_s",
+          "display_name": "Timeout (seconds)",
+          "description": "Seconds to wait for each node before it's marked TIMEOUT.",
+          "type": "float",
+          "has_default_value": true,
+          "default_value": "300",
+          "is_frontend_only": false,
+          "conditional_operator": null,
+          "conditional_value": null,
+          "allowed_values": []
+        }
+      ]
+    }
+  ]
+}

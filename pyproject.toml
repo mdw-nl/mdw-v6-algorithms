@@ -3,7 +3,7 @@ name = "mdw-v6-algorithms"
 version = "0.1.0"
 description = "Standard, reusable vantage6 algorithms for MDW projects"
 requires-python = ">=3.13,<3.14"
-dependencies = ["v6core", "descriptive_statistics", "node-data-schema", "numpy"]
+dependencies = ["v6core", "descriptive_statistics", "node-data-schema", "numpy", "v6run"]
 
 [tool.uv]
 dev-dependencies = [
@@ -29,9 +29,10 @@ members = [
 v6core = { workspace = true }
 descriptive_statistics = { workspace = true }
 node-data-schema = { workspace = true }
+v6run = { workspace = true }
 
 [tool.pytest.ini_options]
-testpaths = ["packages/v6core/tests", "algorithms"]
+testpaths = ["packages/v6core/tests", "algorithms", "runner/tests"]
 
 [tool.ruff]
 line-length = 110

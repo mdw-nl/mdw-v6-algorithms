@@ -800,7 +800,18 @@ Legacy algorithms: `average`, `fed_statistics`, `linear_regression`,
 
 ## 15. Open decisions (resolve these, then move the answers into the relevant sections)
 
-- [ ] CI platform and runners able to start the dev network (Docker-in-CI). Check
-      grimoire first. GitHub Actions is assumed in §11.1.
+- [x] **CI platform:** GitHub Actions, matching grimoire's own reference workflow
+      (`coding/ci-workflow.yaml`). `.github/workflows/ci.yml` runs `make setup`,
+      `make data`, `make lint`, `make test`, then `make build` for every image
+      `make affected` reports changed — plain `docker build` works fine on a
+      GitHub-hosted runner (Docker preinstalled), no special runner needed.
+- [ ] **Docker-in-CI for `make smoke` specifically** is still open: standing up the
+      full dev network (server, store, 3 nodes, 1 node-less org, a local registry) as
+      a GitHub Actions job is a bigger undertaking (multi-container orchestration,
+      resource/time limits on hosted runners, whether a self-hosted runner is needed)
+      that wasn't investigated yet. `make smoke` has been run and verified manually
+      against a live dev network for `descriptive_statistics` (both `healthy` and
+      `faulty` scenarios); automating that in CI is tracked follow-up work, not
+      something CI currently does.
 
 

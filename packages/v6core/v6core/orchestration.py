@@ -6,8 +6,15 @@ creates the subtask(s) itself and polls `client.run.from_task()` against a deadl
 converting a timeout, a crashed run, a missing result or a malformed envelope into an
 `Outcome` instead of letting any of them raise or hang.
 
-Results are matched to organizations through each run's own `organization.id` and
-`results.id`, never by list position (AGENTS.md §7.2).
+Results are matched to organizations through each decoded envelope's own
+`organization_id` field (every envelope `v6core.envelope.node_envelope` builds carries
+one), never by list position (AGENTS.md §7.2) -- and deliberately not through
+`client.result.get(result_id)` either: against a real vantage6 4.14.0-rc8 node, that
+single-result endpoint 500s (`proxy_results() got an unexpected keyword argument
+'id'`, a route/view mismatch inside the node's local proxy server -- a real bug, only
+visible against a real node, not something in our control). `client.result.from_task()`
+-- the listing endpoint -- works fine and is fetched once per task rather than once per
+organization, which is also simply fewer round trips.
 """
 
 import time
@@ -97,13 +104,21 @@ def fan_out(
         task_ids_to_poll = {task_id_by_org[org_id] for org_id in pending_org_ids}
         newly_resolved: set[int] = set()
         for task_id in task_ids_to_poll:
-            for run in client.run.from_task(task_id):
+            runs = client.run.from_task(task_id)
+            finished_runs = [
+                run
+                for run in runs
+                if _organization_id_of(run) in pending_org_ids and has_task_finished(_run_status(run))
+            ]
+            if not finished_runs:
+                continue
+            envelopes_by_org = _envelopes_by_organization(client, task_id)
+            for run in finished_runs:
                 org_id = _organization_id_of(run)
-                if org_id is None or org_id not in pending_org_ids:
+                if org_id is None:
                     continue
-                if has_task_finished(_run_status(run)):
-                    outcomes[org_id] = _outcome_from_run(client, run)
-                    newly_resolved.add(org_id)
+                outcomes[org_id] = _outcome_from_run(run, envelopes_by_org.get(org_id))
+                newly_resolved.add(org_id)
         pending_org_ids -= newly_resolved
         if pending_org_ids:
             time.sleep(min(POLL_INTERVAL_S, max(0.0, deadline - time.monotonic())))
@@ -134,18 +149,25 @@ def _run_status(run: dict) -> TaskStatus:
     return cast(TaskStatus, run.get("status", ""))
 
 
-def _outcome_from_run(client: AnyAlgorithmClient, run: dict) -> Outcome:
+def _envelopes_by_organization(client: AnyAlgorithmClient, task_id: int) -> dict[int, Any]:
+    """Every decoded envelope for `task_id`, keyed by its own `organization_id` field.
+
+    One listing call per task rather than one `result.get()` per organization -- see
+    the module docstring for why `result.get()` is avoided entirely.
+    """
+    envelopes: dict[int, Any] = {}
+    for envelope in client.result.from_task(task_id):
+        if isinstance(envelope, dict) and isinstance(envelope.get("organization_id"), int):
+            envelopes[envelope["organization_id"]] = envelope
+    return envelopes
+
+
+def _outcome_from_run(run: dict, envelope: Any) -> Outcome:
     status = _run_status(run)
     if has_task_failed(status):
         return Outcome(status="error", reason=f"Node run ended with status '{status}'")
 
-    results_ref = run.get("results")
-    result_id = results_ref.get("id") if isinstance(results_ref, dict) else None
-    if result_id is None:
-        return Outcome(status="error", reason="Completed run carries no result reference")
-
-    envelope: Any = client.result.get(result_id)
     if not isinstance(envelope, dict) or "status" not in envelope:
-        return Outcome(status="error", reason="Malformed envelope returned by node")
+        return Outcome(status="error", reason="Malformed or missing envelope returned by node")
 
     return Outcome(status="ok", envelope=envelope)

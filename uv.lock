@@ -13,6 +13,7 @@ members = [
     "mdw-v6-algorithms",
     "node-data-schema",
     "v6core",
+    "v6run",
 ]
 
 [[package]]
@@ -516,6 +517,7 @@ dependencies = [
     { name = "node-data-schema" },
     { name = "numpy" },
     { name = "v6core" },
+    { name = "v6run" },
 ]
 
 [package.dev-dependencies]
@@ -533,6 +535,7 @@ requires-dist = [
     { name = "node-data-schema", editable = "datavalgen/schemas/node_data" },
     { name = "numpy" },
     { name = "v6core", editable = "packages/v6core" },
+    { name = "v6run", editable = "runner" },
 ]
 
 [package.metadata.requires-dev]
@@ -1183,6 +1186,25 @@ requires-dist = [
     { name = "pyjwt", specifier = ">=2.8.0" },
     { name = "scipy", specifier = ">=1.12.0" },
     { name = "vantage6-algorithm-tools", specifier = "==4.14.0" },
+]
+
+[[package]]
+name = "v6run"
+version = "0.1.0"
+source = { editable = "runner" }
+dependencies = [
+    { name = "pydantic" },
+    { name = "pyyaml" },
+    { name = "v6core" },
+    { name = "vantage6-client" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "pydantic", specifier = ">=2.6.0" },
+    { name = "pyyaml", specifier = ">=6.0" },
+    { name = "v6core", editable = "packages/v6core" },
+    { name = "vantage6-client", specifier = "==4.14.0" },
 ]
 
 [[package]]

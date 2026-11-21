@@ -1,0 +1,23 @@
+# Runs against the dev network (AGENTS.md §9.5): `uv run v6run run
+# examples/studies/descriptive_statistics.yaml`.
+#
+# `image` pins this to the locally pushed dev build (`make push-local
+# IMAGE=descriptive_statistics`) rather than a released semver tag -- once this image
+# has a real release, drop `image` and bump `version` instead.
+profile: dev
+collaboration: mdw-dev
+initiating_org: alpha
+algorithm: descriptive_statistics
+version: 0.1.0
+image: localhost:5151/descriptive_statistics:dev
+params:
+  statistics:
+    age:
+      stats: [mean, std, minmax, nrows]
+    sex:
+      stats: [counts]
+    site:
+      stats: [counts]
+  min_organizations: 1
+  timeout_s: 120
+output: results/descriptive_statistics

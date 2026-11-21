@@ -35,7 +35,7 @@ class _UnusedRunClient:
 class _UnusedResultClient:
     """Provenance tests never reach `client.result` -- this just satisfies the shape."""
 
-    def get(self, result_id: int):
+    def from_task(self, task_id: int) -> list:
         raise AssertionError("not used in these tests")
 
 

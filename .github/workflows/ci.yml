@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # needed for `make affected`'s git diff against the base ref
+      - uses: astral-sh/setup-uv@v4
+        with:
+          python-version: "3.13"
+      - run: make setup
+      - run: make data
+      - run: make lint
+      - run: make test
+
+  build-affected:
+    runs-on: ubuntu-latest
+    needs: lint-and-test
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v4
+        with:
+          python-version: "3.13"
+      - name: Determine affected images
+        id: affected
+        run: |
+          BASE="${{ github.event.pull_request.base.sha || 'HEAD~1' }}"
+          images=$(make affected BASE="$BASE" | tr '\n' ' ')
+          echo "images=$images" >> "$GITHUB_OUTPUT"
+      - name: Build each affected image
+        if: steps.affected.outputs.images != ''
+        run: |
+          for image in ${{ steps.affected.outputs.images }}; do
+            echo "::group::build $image"
+            make build IMAGE="$image"
+            echo "::endgroup::"
+          done
+
+  # `make smoke` (standing up the full dev network -- server, store, 3 nodes, 1
+  # node-less org, a local registry -- inside a GitHub Actions job) is intentionally
+  # NOT wired into CI yet. This is AGENTS.md §15's open decision: Docker-in-CI for a
+  # multi-container vantage6 network needs its own runner/resource investigation, not
+  # a default assumption. `make smoke` has been run manually against a live dev
+  # network for every released image; automating that here is tracked follow-up work.

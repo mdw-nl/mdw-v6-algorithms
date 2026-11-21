@@ -35,10 +35,7 @@ class RunClient(Protocol):
 
 
 class ResultClient(Protocol):
-    # Positional-only (`/`): the real client's `Result.get` and the vantage6 mock
-    # client's `Result.get` name this parameter differently (`id_` vs `result_id`);
-    # we only ever call it positionally, so the name shouldn't matter structurally.
-    def get(self, result_id: int, /) -> Any: ...
+    def from_task(self, task_id: int) -> list[Any]: ...
 
 
 class AlgorithmClientLike(Protocol):

@@ -6,7 +6,9 @@ names, outcome coding, thresholds) are request parameters, never code or node co
 
 See [`AGENTS.md`](AGENTS.md) for the full design: architecture, privacy guarantees,
 parameter/output conventions, testing, and the release process. This file is the
-quick-start for researchers and contributors.
+quick-start for researchers and contributors. If you're picking up development on this
+repo (including as an agent resuming the work), read [`HANDOFF.md`](HANDOFF.md) first —
+it tracks current status, the recommended next step, and gotchas already discovered.
 
 ## What's available
 
@@ -60,3 +62,7 @@ docker/              # the shared base image every algorithm image builds from
   isn't implemented yet; `descriptive_statistics/algorithm.json` is hand-written.
 - Standing up the dev network inside CI (`make smoke` automated, not just run
   manually) is open — see AGENTS.md §15.
+
+See [`HANDOFF.md`](HANDOFF.md) for the full picture: suggested order for the remaining
+algorithms, and specific bugs/traps already found and fixed once (don't re-discover
+them).
